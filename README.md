@@ -1,6 +1,8 @@
 # info-tbot
 Information about our platform in telegram bot
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/mastanggt/info-tbot)](https://goreportcard.com/report/github.com/mastanggt/info-tbot)
+
 ## Телеграм Бот
 Написать бота который может:
 * По запросу отправлять кол-во NS
