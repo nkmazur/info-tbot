@@ -1,0 +1,8 @@
+{
+  "telegramBot": {
+    "token": "TOKEN"
+  },
+  "clickhouse": {
+    "url": "URL"
+  }
+}
