@@ -9,6 +9,11 @@ import (
 type Config struct {
 	TelegramBot TelegramConfig
 	Clickhouse  ClickhouseConfig
+	Kube        KubeConfig
+}
+
+type KubeConfig struct {
+	KubeConfig string
 }
 
 type TelegramConfig struct {

@@ -82,15 +82,13 @@ func initHandlers() {
 func initServices() {
 	config, err := clientcmd.BuildConfigFromFlags("", "admin.conf")
 	if err != nil {
-		fmt.Errorf("Can't connect to kubernetes - %v\n", err)
-		panic(err)
+		panic(fmt.Errorf("Can't connect to kubernetes - %v\n", err))
 	}
 
 	// create the clientset
 	svc.kube, err = kubernetes.NewForConfig(config)
 	if err != nil {
-		fmt.Errorf("Can't create clientset for kubernetes - %v\n", err)
-		panic(err)
+		panic(fmt.Errorf("Can't create clientset for kubernetes - %v\n", err))
 	}
 
 	svc.clickhouse, err = sqlx.Open("clickhouse",
