@@ -14,6 +14,7 @@ type DeploysInfo struct {
 	Running    int32
 	NotRunning int32
 	NsID       string
+	NsName	   string
 }
 
 func GetImages() (activeImages map[string]int, notActiveImages map[string]int, err error) {
@@ -60,9 +61,9 @@ func GetNsCount() (int, error) {
 	return len(ns.Items), nil
 }
 
-func GetUserDeploys(info []UserInfo) ([]DeploysInfo, error) {
+func GetUserDeploys(info []UserInfo) (map[string][]DeploysInfo, error) {
 
-	var all []DeploysInfo
+	all := make(map[string][]DeploysInfo)
 
 	for _, v := range info {
 		deploys, err := svc.kube.ExtensionsV1beta1().Deployments(v.NamespaceId).List(metav1.ListOptions{})
@@ -70,12 +71,21 @@ func GetUserDeploys(info []UserInfo) ([]DeploysInfo, error) {
 			return nil, fmt.Errorf("Can't get deployments list - %v\n", err)
 		}
 		for _, deploy := range deploys.Items {
-			all = append(all, DeploysInfo{
+			key := fmt.Sprintf("%s (%s)", v.Label, v.NamespaceId)
+			var active bool
+
+			if deploy.Status.AvailableReplicas == *deploy.Spec.Replicas && deploy.Status.UnavailableReplicas == 0 {
+				active = true
+			}
+
+			all[key] = append(all[key], DeploysInfo{
 				Replicas:   *deploy.Spec.Replicas,
 				Image:      deploy.Spec.Template.Spec.Containers[0].Image,
+				IsActive: 	active,
 				Running:    deploy.Status.AvailableReplicas,
 				NotRunning: deploy.Status.UnavailableReplicas,
 				NsID:       v.NamespaceId,
+				NsName:		v.Label,
 			})
 		}
 	}

@@ -56,6 +56,7 @@ func initHandlers() {
 	handlers["nscount"] = nsCount
 	handlers["deploycount"] = deployCount
 	handlers["images"] = getImages
+	handlers["info"] = getEmailInfo
 }
 
 func initServices() {

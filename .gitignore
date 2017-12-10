@@ -16,3 +16,6 @@
 .glide/
 
 .idea
+admin.conf
+admin2.conf
+config.json

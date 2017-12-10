@@ -126,19 +126,37 @@ func getImages(update tgbotapi.Update) error {
 
 	return nil
 }
-//
-//func getEmailInfo(update tgbotapi.Update) error {
-//	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-//
-//	mail := update.Message.CommandArguments()
-//	ns, err := GetUserInfo(mail)
-//	if err != nil {
-//		return fmt.Errorf("%v\n", err)
-//	}
-//
-//	msg.Text = fmt.Sprintf("Активные image: %v\n"+
-//		"Неактивные image:  %v\n", activeString, notActiveString)
-//	svc.bot.Send(msg)
-//
-//	return nil
-//}
+
+func getEmailInfo(update tgbotapi.Update) error {
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+
+	mail := update.Message.CommandArguments()
+	ns, err := GetUserInfo(mail)
+	fmt.Println(ns)
+	if err != nil {
+		return fmt.Errorf("Can't get ns from email - %v\n", err)
+	}
+	deployments, err := GetUserDeploys(ns)
+	if err != nil {
+		return fmt.Errorf("Can't get deployments from ns - %v\n", err)
+	}
+	fmt.Println(deployments)
+	s := ""
+	for name, ds := range deployments {
+		s += fmt.Sprintf("\n\nNamespace - %s\n\n", name)
+		for _, deploy := range ds {
+			if deploy.IsActive {
+				s += fmt.Sprintf("%02d - Running - %s\n", deploy.Replicas, deploy.Image)
+			} else {
+				s += fmt.Sprintf("%02d - Disable - %s\n", deploy.Replicas, deploy.Image)
+			}
+		}
+	}
+	msg.Text = s
+
+	//msg.Text = fmt.Sprintf("Активные image: %v\n"+
+	//	"Неактивные image:  %v\n", activeString, notActiveString)
+	svc.bot.Send(msg)
+
+	return nil
+}
