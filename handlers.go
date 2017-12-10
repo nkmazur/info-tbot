@@ -34,18 +34,18 @@ func lastHandler(update tgbotapi.Update) error {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	last, err := strconv.ParseInt(update.Message.CommandArguments(), 0, 64)
 	if err != nil {
-		return fmt.Errorf("Wrong fomrat, use - %v", tbotDateExample)
+		return fmt.Errorf("Wrong fomrat, use - %v\n", tbotDateExample)
 	}
 	date := time.Now().Add(-24 * time.Hour * time.Duration(last))
 	method, kind := "create", "namespaces"
-	nsCount, err := selectFromClickhouse(svc.clickhouse, kind, method, date.Format(chDateFormat), "last")
+	nsCount, err := selectFromClickhouse(kind, method, date.Format(chDateFormat), "last")
 	if err != nil {
-		return fmt.Errorf("Can't select ns from clickhouse")
+		return fmt.Errorf("Can't select ns from clickhouse - %v\n", err)
 	}
 	kind = "deployments"
-	deployCount, err := selectFromClickhouse(svc.clickhouse, kind, method, date.Format(chDateFormat), "last")
+	deployCount, err := selectFromClickhouse(kind, method, date.Format(chDateFormat), "last")
 	if err != nil {
-		return fmt.Errorf("Can't select deployments from clickhouse")
+		return fmt.Errorf("Can't select deployments from clickhouse - %v\n", err)
 	}
 
 	msg.Text = fmt.Sprintf("Начиная с  - %v \n"+
@@ -60,17 +60,17 @@ func dateHandler(update tgbotapi.Update) error {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	date, err := time.Parse(tbotDateFormat, update.Message.CommandArguments())
 	if err != nil {
-		return fmt.Errorf("Wrong fomrat, use - %v", tbotDateExample)
+		return fmt.Errorf("Wrong fomrat, use - %v\n", tbotDateExample)
 	}
 	method, kind := "create", "namespaces"
-	nsCount, err := selectFromClickhouse(svc.clickhouse, kind, method, date.Format(chDateFormat), "date")
+	nsCount, err := selectFromClickhouse(kind, method, date.Format(chDateFormat), "date")
 	if err != nil {
-		return fmt.Errorf("Can't select ns from clickhouse")
+		return fmt.Errorf("Can't select ns from clickhouse - %v\n", err)
 	}
 	kind = "deployments"
-	deployCount, err := selectFromClickhouse(svc.clickhouse, kind, method, date.Format(chDateFormat), "date")
+	deployCount, err := selectFromClickhouse(kind, method, date.Format(chDateFormat), "date")
 	if err != nil {
-		return fmt.Errorf("Can't select deployments from clickhouse")
+		return fmt.Errorf("Can't select deployments from clickhouse - %v\n", err)
 	}
 
 	msg.Text = fmt.Sprintf("Начиная с  - %v \n"+
@@ -83,9 +83,9 @@ func dateHandler(update tgbotapi.Update) error {
 
 func nsCount(update tgbotapi.Update) error {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-	count, err := GetNsCount(svc.kube)
+	count, err := GetNsCount()
 	if err != nil {
-		return fmt.Errorf("Can't select ns count from kube")
+		return fmt.Errorf("Can't select ns count from kube - %v\n", err)
 	}
 	msg.Text = fmt.Sprintf("Количество неймспейсов в кубе - %v\n", count)
 	svc.bot.Send(msg)
@@ -95,9 +95,9 @@ func nsCount(update tgbotapi.Update) error {
 
 func deployCount(update tgbotapi.Update) error {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-	count, err := GetDeployCount(svc.kube)
+	count, err := GetDeployCount()
 	if err != nil {
-		return fmt.Errorf("Can't select deployments count from kube")
+		return fmt.Errorf("Can't select deployments count from kube - %v\n", err)
 	}
 	msg.Text = fmt.Sprintf("Количество деплойментов в кубе - %v\n", count)
 	svc.bot.Send(msg)
@@ -107,9 +107,9 @@ func deployCount(update tgbotapi.Update) error {
 
 func getImages(update tgbotapi.Update) error {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-	active, notActive, err := GetImages(svc.kube)
+	active, notActive, err := GetImages()
 	if err != nil {
-		return fmt.Errorf("Can't select deployments from kube")
+		return fmt.Errorf("Can't select deployments from kube - %v\n", err)
 	}
 	activeString := "\n"
 	notActiveString := "\n"
@@ -120,6 +120,22 @@ func getImages(update tgbotapi.Update) error {
 	for k, v := range notActive {
 		notActiveString += fmt.Sprintf("%02d - %s \n", v, k)
 	}
+	msg.Text = fmt.Sprintf("Активные image: %v\n"+
+		"Неактивные image:  %v\n", activeString, notActiveString)
+	svc.bot.Send(msg)
+
+	return nil
+}
+
+func getEmailInfo(update tgbotapi.Update) error {
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+
+	mail := update.Message.CommandArguments()
+	ns, err := GetUserInfo(mail)
+	if err != nil {
+		return fmt.Errorf("%v\n", err)
+	}
+
 	msg.Text = fmt.Sprintf("Активные image: %v\n"+
 		"Неактивные image:  %v\n", activeString, notActiveString)
 	svc.bot.Send(msg)

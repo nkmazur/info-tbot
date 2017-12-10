@@ -10,14 +10,20 @@ type Config struct {
 	TelegramBot TelegramConfig
 	Clickhouse  ClickhouseConfig
 	Kube        KubeConfig
+	Postgres    PostgresConfig
 }
 
 type KubeConfig struct {
-	KubeConfig string
+	Path string
+}
+
+type PostgresConfig struct {
+	Url string
 }
 
 type TelegramConfig struct {
 	Token string
+	Users map[string]string
 }
 
 type ClickhouseConfig struct {
@@ -35,12 +41,4 @@ func OpenConfig(path string) Config {
 		log.Fatalf("Failed to parse %s", err)
 	}
 	return config
-}
-
-func OpenMessage(path string) string {
-	message, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.Fatalf("Failed to read %s", err)
-	}
-	return string(message)
 }

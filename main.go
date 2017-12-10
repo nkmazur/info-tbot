@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"strconv"
+
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/kshvakov/clickhouse"
@@ -32,30 +34,6 @@ var numericKeyboard = tgbotapi.NewReplyKeyboard(
 	),
 )
 
-func selectFromClickhouse(connect *sqlx.DB, kind, method, date, queryType string) (int, error) {
-	fmt.Println(date)
-	var query string
-	switch queryType {
-	case "date":
-		query = fmt.Sprintf("SELECT count(*) as count FROM results where method = '%v' and kind = '%v' "+
-			"and created_date = toDate('%v') and namespace !='default'", method, kind, date)
-	case "last":
-		query = fmt.Sprintf("SELECT count(*) as count FROM results where method = '%v' "+
-			"and kind = '%v' and created_date > toDate('%v') and namespace !='default'", method, kind, date)
-	}
-
-	result, err := connect.Query(query)
-	if err != nil {
-		return 0, fmt.Errorf("Can't select from clickhouse - %v\n", err)
-	}
-	count := 0
-	for result.Next() {
-		result.Scan(&count)
-	}
-	fmt.Println(count)
-	return count, nil
-}
-
 type cmdHandlerFunc func(update tgbotapi.Update) error
 
 var handlers = make(map[string]cmdHandlerFunc)
@@ -64,6 +42,7 @@ type services struct {
 	clickhouse *sqlx.DB
 	kube       *kubernetes.Clientset
 	bot        *tgbotapi.BotAPI
+	postgres   *sqlx.DB
 }
 
 var svc services
@@ -80,7 +59,7 @@ func initHandlers() {
 }
 
 func initServices() {
-	config, err := clientcmd.BuildConfigFromFlags("", "admin.conf")
+	config, err := clientcmd.BuildConfigFromFlags("", conf.Kube.Path)
 	if err != nil {
 		panic(fmt.Errorf("Can't connect to kubernetes - %v\n", err))
 	}
@@ -103,15 +82,20 @@ func initServices() {
 		log.Panic(err)
 	}
 	svc.bot.Debug = true
-}
 
-func init() {
-	conf = OpenConfig("config.json")
-	initHandlers()
-	initServices()
+	svc.postgres, err = sqlx.Open("postgres",
+		conf.Postgres.Url)
+	if err != nil {
+		log.Panic(err)
+	}
+	svc.postgres.Begin()
 }
 
 func main() {
+	conf = OpenConfig("config.json")
+	initHandlers()
+	initServices()
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 	updates, err := svc.bot.GetUpdatesChan(u)
@@ -125,16 +109,19 @@ func main() {
 		}
 
 		if update.Message.IsCommand() {
+			if _, ok := conf.TelegramBot.Users[strconv.Itoa(update.Message.From.ID)]; !ok {
+				continue
+			}
 
 			fn, ok := handlers[update.Message.Command()]
 			if !ok {
 				svc.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "I don't know that command"))
+				continue
 			}
+
 			if err := fn(update); err != nil {
 				svc.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Error: "+err.Error()))
 			}
-
 		}
-
 	}
 }
