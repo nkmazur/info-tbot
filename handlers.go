@@ -126,19 +126,19 @@ func getImages(update tgbotapi.Update) error {
 
 	return nil
 }
-
-func getEmailInfo(update tgbotapi.Update) error {
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-
-	mail := update.Message.CommandArguments()
-	ns, err := GetUserInfo(mail)
-	if err != nil {
-		return fmt.Errorf("%v\n", err)
-	}
-
-	msg.Text = fmt.Sprintf("Активные image: %v\n"+
-		"Неактивные image:  %v\n", activeString, notActiveString)
-	svc.bot.Send(msg)
-
-	return nil
-}
+//
+//func getEmailInfo(update tgbotapi.Update) error {
+//	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+//
+//	mail := update.Message.CommandArguments()
+//	ns, err := GetUserInfo(mail)
+//	if err != nil {
+//		return fmt.Errorf("%v\n", err)
+//	}
+//
+//	msg.Text = fmt.Sprintf("Активные image: %v\n"+
+//		"Неактивные image:  %v\n", activeString, notActiveString)
+//	svc.bot.Send(msg)
+//
+//	return nil
+//}
