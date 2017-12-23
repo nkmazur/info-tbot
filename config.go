@@ -41,7 +41,7 @@ func ParseUsers() map[string]string {
 	users = make(map[string]string, 1)
 	for _, userPass := range strings.Split(usersStr, ",") {
 		userBundle := strings.Split(userPass, ":")
-		users[userBundle[0]] = userBundle[1]
+		users[userBundle[1]] = userBundle[0]
 	}
 	return users
 }
