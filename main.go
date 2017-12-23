@@ -10,7 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/kshvakov/clickhouse"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/rest"
 )
 
 const (
@@ -60,7 +60,7 @@ func initHandlers() {
 }
 
 func initServices() {
-	config, err := clientcmd.BuildConfigFromFlags("", conf.Kube.Path)
+	config, err := rest.InClusterConfig()
 	if err != nil {
 		panic(fmt.Errorf("Can't connect to kubernetes - %v\n", err))
 	}
@@ -93,7 +93,7 @@ func initServices() {
 }
 
 func main() {
-	conf = OpenConfig("config.json")
+	conf = OpenConfig()
 	initHandlers()
 	initServices()
 
@@ -111,12 +111,14 @@ func main() {
 
 		if update.Message.IsCommand() {
 			if _, ok := conf.TelegramBot.Users[strconv.Itoa(update.Message.From.ID)]; !ok {
+				fmt.Errorf("User not in whitelist!")
 				continue
 			}
 
 			fn, ok := handlers[update.Message.Command()]
 			if !ok {
 				svc.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "I don't know that command"))
+				fmt.Errorf("NOT A COMMAND!")
 				continue
 			}
 

@@ -1,20 +1,15 @@
 package main
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"log"
+	"fmt"
+	"os"
+	"strings"
 )
 
 type Config struct {
 	TelegramBot TelegramConfig
 	Clickhouse  ClickhouseConfig
-	Kube        KubeConfig
 	Postgres    PostgresConfig
-}
-
-type KubeConfig struct {
-	Path string
 }
 
 type PostgresConfig struct {
@@ -30,15 +25,23 @@ type ClickhouseConfig struct {
 	Url string
 }
 
-func OpenConfig(path string) Config {
+func OpenConfig() Config {
 	var config Config
-	configFile, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.Fatalf("Failed to read %s", err)
-	}
-	err = json.Unmarshal(configFile, &config)
-	if err != nil {
-		log.Fatalf("Failed to parse %s", err)
-	}
+	config.Postgres.Url = fmt.Sprintf("host=%s user=%s password=%s dbname=%s",
+		os.Getenv("POSTGRES_HOST"), os.Getenv("POSTGRES_USER"), os.Getenv("POSTGRES_PASS"), os.Getenv("POSTGRES_DB"))
+	config.Clickhouse.Url = fmt.Sprintf("tcp://%s?username=%s&password=%s&database=%s&debug=true",
+		os.Getenv("CLICKHOUSE_HOST"), os.Getenv("CLICKHOUSE_USER"), os.Getenv("CLICKHOUSE_PASS"), os.Getenv("CLICKHOUSE_DB"))
+	config.TelegramBot.Token = os.Getenv("TELEGRAM_TOKEN")
+	config.TelegramBot.Users = ParseUsers()
 	return config
+}
+func ParseUsers() map[string]string {
+	usersStr := os.Getenv("ALLOW_USERS")
+	var users map[string]string
+	users = make(map[string]string, 1)
+	for _, userPass := range strings.Split(usersStr, ",") {
+		userBundle := strings.Split(userPass, ":")
+		users[userBundle[0]] = userBundle[1]
+	}
+	return users
 }
