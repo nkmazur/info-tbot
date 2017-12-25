@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strconv"
-
 	"time"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
@@ -122,7 +121,21 @@ func getImages(update tgbotapi.Update) error {
 	}
 	msg.Text = fmt.Sprintf("Активные image: %v\n"+
 		"Неактивные image:  %v\n", activeString, notActiveString)
-	svc.bot.Send(msg)
+	if len(msg.Text) > 4096 {
+		splitMsg := msg
+		const size = 4096
+		iter := len(splitMsg.Text)/size + 1
+		for i := 0; i < iter; i++ {
+			e := i*size + size
+			if e > len(msg.Text) {
+				e = len(msg.Text)
+			}
+			splitMsg.Text = msg.Text[i*size : e]
+			svc.bot.Send(splitMsg)
+		}
+	} else {
+		svc.bot.Send(msg)
+	}
 
 	return nil
 }

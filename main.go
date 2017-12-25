@@ -82,7 +82,7 @@ func initServices() {
 	if err != nil {
 		log.Panic(err)
 	}
-	svc.bot.Debug = true
+	svc.bot.Debug = false
 
 	svc.postgres, err = sqlx.Open("postgres",
 		conf.Postgres.Url)
@@ -111,14 +111,12 @@ func main() {
 
 		if update.Message.IsCommand() {
 			if _, ok := conf.TelegramBot.Users[strconv.Itoa(update.Message.From.ID)]; !ok {
-				fmt.Errorf("User not in whitelist!")
 				continue
 			}
 
 			fn, ok := handlers[update.Message.Command()]
 			if !ok {
 				svc.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "I don't know that command"))
-				fmt.Errorf("NOT A COMMAND!")
 				continue
 			}
 
