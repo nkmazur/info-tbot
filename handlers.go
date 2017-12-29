@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
+	log "github.com/sirupsen/logrus"
 )
 
 func helloHandler(update tgbotapi.Update) error {
@@ -33,17 +34,34 @@ func lastHandler(update tgbotapi.Update) error {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	last, err := strconv.ParseInt(update.Message.CommandArguments(), 0, 64)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"user":    update.Message.From.UserName,
+			"userID":  update.Message.From.ID,
+			"message": update.Message.Text,
+		}).Info("Wrong date format")
 		return fmt.Errorf("Wrong fomrat, use - %v\n", tbotDateExample)
 	}
 	date := time.Now().Add(-24 * time.Hour * time.Duration(last))
 	method, kind := "create", "namespaces"
 	nsCount, err := selectFromClickhouse(kind, method, date.Format(chDateFormat), "last")
 	if err != nil {
+		log.WithFields(log.Fields{
+			"user":    update.Message.From.UserName,
+			"userID":  update.Message.From.ID,
+			"message": update.Message.Text,
+			"error":   err,
+		}).Info("Command not found")
 		return fmt.Errorf("Can't select ns from clickhouse - %v\n", err)
 	}
 	kind = "deployments"
 	deployCount, err := selectFromClickhouse(kind, method, date.Format(chDateFormat), "last")
 	if err != nil {
+		log.WithFields(log.Fields{
+			"user":    update.Message.From.UserName,
+			"userID":  update.Message.From.ID,
+			"message": update.Message.Text,
+			"error":   err,
+		}).Info("Clickhouse error")
 		return fmt.Errorf("Can't select deployments from clickhouse - %v\n", err)
 	}
 
@@ -59,16 +77,33 @@ func dateHandler(update tgbotapi.Update) error {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	date, err := time.Parse(tbotDateFormat, update.Message.CommandArguments())
 	if err != nil {
+		log.WithFields(log.Fields{
+			"user":    update.Message.From.UserName,
+			"userID":  update.Message.From.ID,
+			"message": update.Message.Text,
+		}).Info("Wrong date format")
 		return fmt.Errorf("Wrong fomrat, use - %v\n", tbotDateExample)
 	}
 	method, kind := "create", "namespaces"
 	nsCount, err := selectFromClickhouse(kind, method, date.Format(chDateFormat), "date")
 	if err != nil {
+		log.WithFields(log.Fields{
+			"user":    update.Message.From.UserName,
+			"userID":  update.Message.From.ID,
+			"message": update.Message.Text,
+			"error":   err,
+		}).Info("Clickhouse error")
 		return fmt.Errorf("Can't select ns from clickhouse - %v\n", err)
 	}
 	kind = "deployments"
 	deployCount, err := selectFromClickhouse(kind, method, date.Format(chDateFormat), "date")
 	if err != nil {
+		log.WithFields(log.Fields{
+			"user":    update.Message.From.UserName,
+			"userID":  update.Message.From.ID,
+			"message": update.Message.Text,
+			"error":   err,
+		}).Info("Clickhouse error")
 		return fmt.Errorf("Can't select deployments from clickhouse - %v\n", err)
 	}
 
@@ -84,7 +119,13 @@ func nsCount(update tgbotapi.Update) error {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	count, err := GetNsCount()
 	if err != nil {
-		return fmt.Errorf("Can't select ns count from kube - %v\n", err)
+		log.WithFields(log.Fields{
+			"user":    update.Message.From.UserName,
+			"userID":  update.Message.From.ID,
+			"message": update.Message.Text,
+			"error":   err,
+		}).Info("Error when get namespaces from kube api")
+		return fmt.Errorf("Can't select ns from kube - %v\n", err)
 	}
 	msg.Text = fmt.Sprintf("Количество неймспейсов в кубе - %v\n", count)
 	svc.bot.Send(msg)
@@ -96,6 +137,12 @@ func deployCount(update tgbotapi.Update) error {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	count, err := GetDeployCount()
 	if err != nil {
+		log.WithFields(log.Fields{
+			"user":    update.Message.From.UserName,
+			"userID":  update.Message.From.ID,
+			"message": update.Message.Text,
+			"error":   err,
+		}).Info("Can't select deployments from kube")
 		return fmt.Errorf("Can't select deployments count from kube - %v\n", err)
 	}
 	msg.Text = fmt.Sprintf("Количество деплойментов в кубе - %v\n", count)
@@ -108,6 +155,12 @@ func getImages(update tgbotapi.Update) error {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	active, notActive, err := GetImages()
 	if err != nil {
+		log.WithFields(log.Fields{
+			"user":    update.Message.From.UserName,
+			"userID":  update.Message.From.ID,
+			"message": update.Message.Text,
+			"error":   err,
+		}).Info("Can't select deployments from kube")
 		return fmt.Errorf("Can't select deployments from kube - %v\n", err)
 	}
 	activeString := "\n"
@@ -147,10 +200,22 @@ func getEmailInfo(update tgbotapi.Update) error {
 	ns, err := GetUserInfo(mail)
 	fmt.Println(ns)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"user":    update.Message.From.UserName,
+			"userID":  update.Message.From.ID,
+			"message": update.Message.Text,
+			"error":   err,
+		}).Info("Can't select frompostgres")
 		return fmt.Errorf("Can't get ns from email - %v\n", err)
 	}
 	deployments, err := GetUserDeploys(ns)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"user":    update.Message.From.UserName,
+			"userID":  update.Message.From.ID,
+			"message": update.Message.Text,
+			"error":   err,
+		}).Info("Can't select deployments from kube")
 		return fmt.Errorf("Can't get deployments from ns - %v\n", err)
 	}
 	fmt.Println(deployments)
@@ -171,5 +236,15 @@ func getEmailInfo(update tgbotapi.Update) error {
 	//	"Неактивные image:  %v\n", activeString, notActiveString)
 	svc.bot.Send(msg)
 
+	return nil
+}
+
+func getHistory(update tgbotapi.Update) error {
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+	mail := update.Message.CommandArguments()
+	id, _ := GetUserID(mail)
+	getHistoryFromClickhouse(id)
+	msg.Text = fmt.Sprintf("test")
+	svc.bot.Send(msg)
 	return nil
 }

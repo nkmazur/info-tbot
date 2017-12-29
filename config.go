@@ -27,9 +27,9 @@ type ClickhouseConfig struct {
 
 func OpenConfig() Config {
 	var config Config
-	config.Postgres.Url = fmt.Sprintf("host=%s user=%s password=%s dbname=%s",
+	config.Postgres.Url = fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",
 		os.Getenv("POSTGRES_HOST"), os.Getenv("POSTGRES_USER"), os.Getenv("POSTGRES_PASS"), os.Getenv("POSTGRES_DB"))
-	config.Clickhouse.Url = fmt.Sprintf("tcp://%s?username=%s&password=%s&database=%s&debug=true",
+	config.Clickhouse.Url = fmt.Sprintf("tcp://%s?username=%s&password=%s&database=%s&debug=false",
 		os.Getenv("CLICKHOUSE_HOST"), os.Getenv("CLICKHOUSE_USER"), os.Getenv("CLICKHOUSE_PASS"), os.Getenv("CLICKHOUSE_DB"))
 	config.TelegramBot.Token = os.Getenv("TELEGRAM_TOKEN")
 	config.TelegramBot.Users = ParseUsers()

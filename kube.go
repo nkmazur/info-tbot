@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -14,14 +15,16 @@ type DeploysInfo struct {
 	Running    int32
 	NotRunning int32
 	NsID       string
-	NsName	   string
+	NsName     string
 }
 
 func GetImages() (activeImages map[string]int, notActiveImages map[string]int, err error) {
 	deployments, err := svc.kube.ExtensionsV1beta1().Deployments(apiv1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("Can't get deployments list - %v\n", err)
-
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Can't get deployments list")
 	}
 
 	activeImages, notActiveImages = make(map[string]int), make(map[string]int)
@@ -46,6 +49,9 @@ func GetDeployCount() (int, error) {
 	deployments, err := svc.kube.ExtensionsV1beta1().Deployments(apiv1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return 0, fmt.Errorf("Can't get deployments list - %v\n", err)
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Can't get deployments list")
 	}
 
 	return len(deployments.Items), nil
@@ -56,6 +62,9 @@ func GetNsCount() (int, error) {
 	ns, err := svc.kube.CoreV1().Namespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return 0, fmt.Errorf("Can't get namespaces list - %v\n", err)
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Can't get namespaces list")
 	}
 
 	return len(ns.Items), nil
@@ -69,6 +78,9 @@ func GetUserDeploys(info []UserInfo) (map[string][]DeploysInfo, error) {
 		deploys, err := svc.kube.ExtensionsV1beta1().Deployments(v.NamespaceId).List(metav1.ListOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("Can't get deployments list - %v\n", err)
+			log.WithFields(log.Fields{
+				"Error": err,
+			}).Error("Can't get deployments list")
 		}
 		for _, deploy := range deploys.Items {
 			key := fmt.Sprintf("%s (%s)", v.Label, v.NamespaceId)
@@ -81,11 +93,11 @@ func GetUserDeploys(info []UserInfo) (map[string][]DeploysInfo, error) {
 			all[key] = append(all[key], DeploysInfo{
 				Replicas:   *deploy.Spec.Replicas,
 				Image:      deploy.Spec.Template.Spec.Containers[0].Image,
-				IsActive: 	active,
+				IsActive:   active,
 				Running:    deploy.Status.AvailableReplicas,
 				NotRunning: deploy.Status.UnavailableReplicas,
 				NsID:       v.NamespaceId,
-				NsName:		v.Label,
+				NsName:     v.Label,
 			})
 		}
 	}
