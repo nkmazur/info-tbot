@@ -56,12 +56,10 @@ func GetUserID(mail string) (string, error) {
 		}).Error("Unable to select from Postgresql")
 		return "", fmt.Errorf("Can't select from pg - %v\n", err)
 	}
-	if len(id) > 0 {
-		return "", fmt.Errorf("No such user")
+	if len(id) == 0 {
+		return "", fmt.Errorf("No such user!")
 	}
 
-	var user_id string
-	user_id = id[0].Id
 
-	return user_id, nil
+	return id[0].Id, nil
 }

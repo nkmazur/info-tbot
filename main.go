@@ -58,14 +58,16 @@ func initHandlers() {
 	handlers["images"] = getImages
 	handlers["info"] = getEmailInfo
 	handlers["history"] = getHistory
+	handlers["errors"] = getKubeErrors
 }
 
-func initServices() {
+func initServices() error {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
-		}).Error("Can't cinnect to Kubernetes")
+		}).Error("Can't connect to Kubernetes")
+		os.Exit(1)
 	}
 
 	// create the clientset
@@ -74,6 +76,7 @@ func initServices() {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Error("Can't create clientset for Kubernetes")
+		os.Exit(1)
 	}
 
 	svc.clickhouse, err = sqlx.Open("clickhouse",
@@ -82,6 +85,7 @@ func initServices() {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Error("Can't connect to Clickhouse")
+		os.Exit(1)
 	}
 	svc.clickhouse.Begin()
 
@@ -90,6 +94,7 @@ func initServices() {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Error("Can't connect to telegram")
+		os.Exit(1)
 	}
 	svc.bot.Debug = false
 
@@ -99,8 +104,10 @@ func initServices() {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Error("Can't connect to postgres")
+		os.Exit(1)
 	}
 	svc.postgres.Begin()
+	return nil
 }
 
 func InitLogToStdout() {
@@ -112,7 +119,11 @@ func InitLogToStdout() {
 func main() {
 	conf = OpenConfig()
 	initHandlers()
-	initServices()
+	err := initServices()
+	if err != nil {
+		log.WithError(err)
+		os.Exit(1)
+	}
 	InitLogToStdout()
 
 	u := tgbotapi.NewUpdate(0)

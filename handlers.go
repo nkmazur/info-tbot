@@ -38,7 +38,7 @@ func lastHandler(update tgbotapi.Update) error {
 			"user":    update.Message.From.UserName,
 			"userID":  update.Message.From.ID,
 			"message": update.Message.Text,
-		}).Info("Wrong date format")
+		}).Error("Wrong date format")
 		return fmt.Errorf("Wrong fomrat, use - %v\n", tbotDateExample)
 	}
 	date := time.Now().Add(-24 * time.Hour * time.Duration(last))
@@ -50,7 +50,7 @@ func lastHandler(update tgbotapi.Update) error {
 			"userID":  update.Message.From.ID,
 			"message": update.Message.Text,
 			"error":   err,
-		}).Info("Command not found")
+		}).Error("Command not found")
 		return fmt.Errorf("Can't select ns from clickhouse - %v\n", err)
 	}
 	kind = "deployments"
@@ -61,7 +61,7 @@ func lastHandler(update tgbotapi.Update) error {
 			"userID":  update.Message.From.ID,
 			"message": update.Message.Text,
 			"error":   err,
-		}).Info("Clickhouse error")
+		}).Error("Clickhouse error")
 		return fmt.Errorf("Can't select deployments from clickhouse - %v\n", err)
 	}
 
@@ -81,7 +81,7 @@ func dateHandler(update tgbotapi.Update) error {
 			"user":    update.Message.From.UserName,
 			"userID":  update.Message.From.ID,
 			"message": update.Message.Text,
-		}).Info("Wrong date format")
+		}).Error("Wrong date format")
 		return fmt.Errorf("Wrong fomrat, use - %v\n", tbotDateExample)
 	}
 	method, kind := "create", "namespaces"
@@ -92,7 +92,7 @@ func dateHandler(update tgbotapi.Update) error {
 			"userID":  update.Message.From.ID,
 			"message": update.Message.Text,
 			"error":   err,
-		}).Info("Clickhouse error")
+		}).Error("Clickhouse error")
 		return fmt.Errorf("Can't select ns from clickhouse - %v\n", err)
 	}
 	kind = "deployments"
@@ -103,7 +103,7 @@ func dateHandler(update tgbotapi.Update) error {
 			"userID":  update.Message.From.ID,
 			"message": update.Message.Text,
 			"error":   err,
-		}).Info("Clickhouse error")
+		}).Error("Clickhouse error")
 		return fmt.Errorf("Can't select deployments from clickhouse - %v\n", err)
 	}
 
@@ -124,7 +124,7 @@ func nsCount(update tgbotapi.Update) error {
 			"userID":  update.Message.From.ID,
 			"message": update.Message.Text,
 			"error":   err,
-		}).Info("Error when get namespaces from kube api")
+		}).Error("Error when get namespaces from kube api")
 		return fmt.Errorf("Can't select ns from kube - %v\n", err)
 	}
 	msg.Text = fmt.Sprintf("Количество неймспейсов в кубе - %v\n", count)
@@ -142,7 +142,7 @@ func deployCount(update tgbotapi.Update) error {
 			"userID":  update.Message.From.ID,
 			"message": update.Message.Text,
 			"error":   err,
-		}).Info("Can't select deployments from kube")
+		}).Error("Can't select deployments from kube")
 		return fmt.Errorf("Can't select deployments count from kube - %v\n", err)
 	}
 	msg.Text = fmt.Sprintf("Количество деплойментов в кубе - %v\n", count)
@@ -160,17 +160,22 @@ func getImages(update tgbotapi.Update) error {
 			"userID":  update.Message.From.ID,
 			"message": update.Message.Text,
 			"error":   err,
-		}).Info("Can't select deployments from kube")
+		}).Error("Can't select deployments from kube")
 		return fmt.Errorf("Can't select deployments from kube - %v\n", err)
 	}
 	activeString := "\n"
 	notActiveString := "\n"
-	for k, v := range active {
-		activeString += fmt.Sprintf("%02d - %s \n", v, k)
+	for _, v := range active {
+		//	make(active, 0)
+		if true {
+			activeString += fmt.Sprintf("%02d - %v \n", v.Count, v.Image)
+		}
 	}
 
-	for k, v := range notActive {
-		notActiveString += fmt.Sprintf("%02d - %s \n", v, k)
+	for _, v := range notActive {
+		if true {
+			notActiveString += fmt.Sprintf("%02d - %v \n", v.Count, v.Image)
+		}
 	}
 	msg.Text = fmt.Sprintf("Активные image: %v\n"+
 		"Неактивные image:  %v\n", activeString, notActiveString)
@@ -198,14 +203,13 @@ func getEmailInfo(update tgbotapi.Update) error {
 
 	mail := update.Message.CommandArguments()
 	ns, err := GetUserInfo(mail)
-	fmt.Println(ns)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"user":    update.Message.From.UserName,
 			"userID":  update.Message.From.ID,
 			"message": update.Message.Text,
 			"error":   err,
-		}).Info("Can't select frompostgres")
+		}).Error("Can't select frompostgres")
 		return fmt.Errorf("Can't get ns from email - %v\n", err)
 	}
 	deployments, err := GetUserDeploys(ns)
@@ -215,10 +219,9 @@ func getEmailInfo(update tgbotapi.Update) error {
 			"userID":  update.Message.From.ID,
 			"message": update.Message.Text,
 			"error":   err,
-		}).Info("Can't select deployments from kube")
+		}).Error("Can't select deployments from kube")
 		return fmt.Errorf("Can't get deployments from ns - %v\n", err)
 	}
-	fmt.Println(deployments)
 	s := ""
 	for name, ds := range deployments {
 		s += fmt.Sprintf("\n\nNamespace - %s\n\n", name)
@@ -242,9 +245,64 @@ func getEmailInfo(update tgbotapi.Update) error {
 func getHistory(update tgbotapi.Update) error {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	mail := update.Message.CommandArguments()
-	id, _ := GetUserID(mail)
-	getHistoryFromClickhouse(id)
-	msg.Text = fmt.Sprintf("test")
+	id, err := GetUserID(mail)
+	if err != nil {
+		msg.Text = fmt.Sprintf(err.Error())
+		log.WithFields(log.Fields{
+			"user":    update.Message.From.UserName,
+			"userID":  update.Message.From.ID,
+			"message": update.Message.Text,
+			"error":   err,
+		}).Error("Error when select id from postgres!")
+		svc.bot.Send(msg)
+		return err
+	}
+	text, err := getHistoryFromClickhouse(id)
+	if err != nil {
+		msg.Text = fmt.Sprintf(err.Error())
+		log.WithFields(log.Fields{
+			"user":    update.Message.From.UserName,
+			"userID":  update.Message.From.ID,
+			"message": update.Message.Text,
+			"error":   err,
+		}).Error("Error when select history form clickhouse!")
+		svc.bot.Send(msg)
+		return err
+	}
+	msg.Text = fmt.Sprintf(text)
 	svc.bot.Send(msg)
+	return nil
+}
+
+func getKubeErrors(update tgbotapi.Update) error {
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+	Msg, err := kubeErrors()
+	if err != nil {
+		msg.Text = fmt.Sprintf(err.Error())
+		log.WithFields(log.Fields{
+			"user":    update.Message.From.UserName,
+			"userID":  update.Message.From.ID,
+			"message": update.Message.Text,
+			"error":   err,
+		}).Error("Error when get pods!")
+		svc.bot.Send(msg)
+		return err
+	}
+	msg.Text = Msg
+	if len(msg.Text) > 4096 {
+		splitMsg := msg
+		const size = 4096
+		iter := len(splitMsg.Text)/size + 1
+		for i := 0; i < iter; i++ {
+			e := i*size + size
+			if e > len(msg.Text) {
+				e = len(msg.Text)
+			}
+			splitMsg.Text = msg.Text[i*size : e]
+			svc.bot.Send(splitMsg)
+		}
+	} else {
+		svc.bot.Send(msg)
+	}
 	return nil
 }
