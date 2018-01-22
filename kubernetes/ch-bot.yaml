@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: in-cluster
+spec:
+  containers:
+  - name: in-cluster
+    imagePullPolicy: Never
+    image: in-cluster
+    env:
+    - name: POSTGRES_HOST
+      vaule: 
+    - name: POSTGRES_USER
+      vaule: 
+    - name: POSTGRES_PASS
+      vaule: 
+    - name: POSTGRES_DB
+      vaule: 
+    - name: CLICKHOUSE_HOST
+      vaule: 
+    - name: CLICKHOUSE_USER
+      vaule: 
+    - name: CLICKHOUSE_PASS
+      vaule: 
+    - name: CLICKHOUSE_DB
+      vaule: 
+    - name: TELEGRAM_TOKEN
+      vaule: 
+    - name: ALLOW_USERS
+      vaule: 
+  serviceAccountName: telegram-bot

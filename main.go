@@ -21,7 +21,12 @@ const (
 
 var numericKeyboard = tgbotapi.NewReplyKeyboard(
 	tgbotapi.NewKeyboardButtonRow(
+		tgbotapi.NewKeyboardButton("/help"),
+	),
+	tgbotapi.NewKeyboardButtonRow(
 		tgbotapi.NewKeyboardButton("/images"),
+		tgbotapi.NewKeyboardButton("/errors"),
+		tgbotapi.NewKeyboardButton("/info"),
 	),
 	tgbotapi.NewKeyboardButtonRow(
 		tgbotapi.NewKeyboardButton("/nscount"),

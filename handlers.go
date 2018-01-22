@@ -24,7 +24,9 @@ func helpHandler(update tgbotapi.Update) error {
 		"/last 90\n"+
 		"/nscount \n"+
 		"/deploycount\n"+
-		"/images", tbotDateExample)
+		"/images\n"+
+		"/history user@example.com\n"+
+		"/errors", tbotDateExample)
 	svc.bot.Send(msg)
 
 	return nil
